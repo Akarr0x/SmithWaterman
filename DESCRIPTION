@@ -1,0 +1,22 @@
+Package: SmithWaterman
+Type: Package
+Title: Smith Waterman algorithm for sequence alignment
+Depends: R (>= 2.10), Biostrings
+Suggests: knitr, rmarkdown, testthat, BiocStyle
+VignetteBuilder: rmarkdown
+Version: 0.99
+Date: 2022-12-3
+Encoding: UTF-8
+Author: Alessandro Diamanti
+Maintainer: Alessandro Diamanti <alessandro.diamanti1@gmail.com>
+Description: Uses Smith Waterman algorithm to find the 
+    optimal alignment between two sequences.
+    It uses two matrices, one containing all the scores,
+    the other containing the path for one optimal alignment.
+    Since there could be more than one optimal alignment, but
+    the score between those should not change, the function reports
+    only the first one. 
+License: GPL-2
+LazyData: true
+URL: https://github.com/Akarr0x/SmithWaterman
+RoxygenNote: 7.2.1

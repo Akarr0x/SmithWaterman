@@ -1,0 +1,277 @@
+---
+title: "Smith Waterman"
+author:
+- name: Alessandro Diamanti
+  affiliation: Politecnico di Milano
+  email: alessandrodiamanti1@gmail.com
+package: SmithWaterman
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteIndexEntry{Smith Waterman}
+  %\usepackage[UTF-8]{inputenc}
+---
+
+## 1. Introduction
+
+## 1.1 Aim of the package
+
+This package has been developed to obtain an R package with a function that performs a local sequence alignment between two nucleotide sequences using the Smith-Waterman algorithm.
+
+## 1.2 Smith-Waterman algorithm.
+
+The Smith-Waterman algorithm is an algorithm used to align nucleotide sequences, considering a local alignment over a global one. The algorithm is based on a score, given by how two sequences are equal one to the other.It returns one(in the case of this package) or more optimal sequence alignments, considered the fact that multiple alignments can have the same score.
+
+Different score can be adopted. The default scoring system chosen by this package is the following: +3 for each match, -3 for each miss-match, -1 for each gap in the sequence. This kind of scoring system is by no means the most optimal and different scores must be taken into consideration, depending on our wanted results.
+
+## 2 Package installation
+
+## 2.1 Installation and dependencies
+
+The only dependency is Biostrings. 
+Biostrings allows for better input handling, since it considers the possible nucleotide present in a DNA sequence thanks to DNAstring. It is also used to be sure that there are no differences between upper and lower cases letters.
+
+- It is then needed to run the command `BiocManager::intall("Biostrings")` to install the dependencies. It is then possible to run `R CMD INSTALL SmithWaterman_0.99.tar.gz` from the directory containing the package.
+
+## 2.2 Functions
+
+This package contain the main function, called smithwaterman.
+
+smithwaterman() must contain:
+
+- First sequence: A DNAString() object containing a correct sequence of nucleotides
+
+- Second sequence: A DNAString() object containing a correct sequence of nucleotides
+
+- Match: Score given in the presence of a match
+
+- Miss-match: Score given in the presence of a miss-match
+
+- Gap: Score given in the presence of a gap
+
+## 2.3 Data
+
+In the package two sequences as DNAString objects are present. Those can be called with the following code
+
+```{r eval=FALSE}
+exSeq1 <- eln1 #load the sequence of elastin transcript variant 1
+exSeq2 <- eln3 #load the sequence of elastin transcript variant 3
+```
+
+## 2.4 Workflow
+
+Example of the usage of the package:
+
+```{r eval=FALSE}
+library(SmithWaterman)
+```
+
+Then the creation of two DNAString objects is needed.
+
+-   Using a normal character variable
+
+    ```{r eval=FALSE}
+    charVar <- "ATCG"
+    seq1 <- DNAString(charVar)
+    ```
+
+
+    ```{r eval=FALSE}
+    seq2 <- eln1
+    ```
+
+Once the two sequences are saved it's possible to use the smithwaterman function
+
+
+```{r eval=FALSE}
+example <- smithwaterman(seq1, seq2)
+```
+
+In the case that match, missmatch and gap are not defined, the standard values described before will be used.
+
+Example with other values:
+
+
+```{r eval=FALSE}
+example <- smithwaterman(seq1, seq2,3,-3,-1)
+```
+
+It is important to know that to correctly run this program the match score must be > 0, the missmatch score must be <0 and the gap score also must be <0
+
+The result obtained by this function will be the best local alignment between the two function, a visualization strings that allows for a better understanding of the differences between the two sequences and the maximum score
+
+## 3 Source code
+
+
+smithwaterman <- function(first, second,
+                          match = 3, missmatch = -3,
+                          gap = -1) {
+
+first_sequence <- first
+second_sequence <- second
+sub_matrix <- matrix(c(match, missmatch, gap), 1, 3)
+
+if (length(first) == 0 || length(second) == 0)
+    stop("Sequences length is not correct")
+if (class(first_sequence) != "DNAString" ||
+    class(second_sequence) != "DNAString")
+    stop("Sequences must be DNAStrings")
+if (!is.numeric(sub_matrix))
+    stop("All the scores and penalities must be numeric")
+if (match <= 0)
+    stop("Match score must be higher than 0")
+if (missmatch > 0)
+    stop("Missmatch score must be lower than 0")
+if (gap > 0)
+    stop("Gap score must be lower than 0")
+
+first_sequence <- unlist(strsplit(toString(first_sequence), ""))
+second_sequence <- unlist(strsplit(toString(second_sequence), ""))
+len1 <- length(first_sequence)
+len2 <- length(second_sequence)
+
+scoring_matrix <- matrix(, ncol = len2 + 1, nrow = len1 + 1)
+rownames(scoring_matrix) <-  c("", unlist(strsplit(first_sequence, "")))
+colnames(scoring_matrix) <-  c("", unlist(strsplit(second_sequence, "")))
+
+traceback_matrix <- scoring_matrix
+scoring_matrix[, 1] <- 0
+scoring_matrix[1, ] <- 0
+
+for (i in 2:nrow(scoring_matrix)) {
+    for (j in 2:ncol(scoring_matrix)){
+
+       
+        scores <-   c(scoring_matrix[i, j - 1] + sub_matrix[3],
+                        scoring_matrix[i - 1, j] + sub_matrix[3])
+
+        if (colnames(scoring_matrix)[j] == rownames(scoring_matrix)[i])
+            scores <- append(scores,
+                        scoring_matrix[i - 1, j - 1] + sub_matrix[1])
+
+        else
+            scores <- append(scores,
+                        scoring_matrix[i - 1, j - 1] + sub_matrix[2])
+
+        scoring_matrix[i, j] <- max(scores)
+
+        if (scoring_matrix[i, j] <= 0)
+                scoring_matrix[i, j] <- 0
+    }
+}
+
+max_score <- which(scoring_matrix == max(scoring_matrix), arr.ind = TRUE)
+
+if (length(max_score) > 2)
+    max_score <- max_score[1, ]
+
+traceback_score <- max(scoring_matrix)
+traceback_position <- max_score
+traceback_matrix[traceback_position[1], traceback_position[2]] <- 1
+
+while (traceback_score != 0 ||
+        traceback_position[1] != 1 && traceback_position[2] != 1) {
+        largest <-
+            c(scoring_matrix[traceback_position[1] - 1, traceback_position[2] - 1],
+            scoring_matrix[traceback_position[1] - 1, traceback_position[2]],
+            scoring_matrix[traceback_position[1], traceback_position[2] - 1])
+        largest_ind <- which(largest == max(largest), arr.ind = TRUE)
+
+        if (length(largest_ind) >= 2)
+            largest_ind <- largest_ind[1]
+
+        traceback_matrix[traceback_position[1],
+                        traceback_position[2]] <- largest_ind
+
+        if (largest_ind == 1) {
+            traceback_score <- scoring_matrix[traceback_position[1] - 1,
+                                             traceback_position[2] - 1]
+            traceback_position[1] <- traceback_position[1] - 1
+            traceback_position[2] <- traceback_position[2] - 1
+
+        }
+        if (largest_ind == 2) {
+            traceback_score <- scoring_matrix[traceback_position[1] - 1,
+                                             traceback_position[2]]
+            traceback_position[1] <- traceback_position[1] - 1
+        }
+        if (largest_ind == 3) {
+            traceback_score <- scoring_matrix[traceback_position[1],
+                                             traceback_position[2] - 1]
+            traceback_position[2] <- traceback_position[2] - 1
+        }
+
+        if (max(largest) == 0) {
+            break
+        }
+}
+
+
+backtracking_score <- max_score
+
+sequence_a <- c()
+sequence_b <- c()
+
+while (sum(!is.na(traceback_matrix[backtracking_score[1], ])) > 0 ||
+        sum(!is.na(traceback_matrix[, backtracking_score[2]])) > 0) {
+
+    if (sum(!is.na(traceback_matrix[, backtracking_score[2]])) == 1) {
+        sequence_a <- append(sequence_a, colnames(
+                traceback_matrix)[backtracking_score[2]])
+    }else {
+        if (sum(!is.na(traceback_matrix[, backtracking_score[2]])) != 0) {
+            sequence_a <- append(sequence_a, rep('_',
+                (sum(!is.na(traceback_matrix[, backtracking_score[2]]))) - 1))
+
+            sequence_a <- append(sequence_a, colnames(
+                traceback_matrix)[backtracking_score[2]])
+        }
+    }
+    if (sum(!is.na(traceback_matrix[backtracking_score[1], ])) == 1) {
+        sequence_b <- append(sequence_b, rownames(
+                traceback_matrix)[backtracking_score[1]])
+    }else {
+        if (sum(!is.na(traceback_matrix[backtracking_score[1], ])) != 0) {
+            sequence_b <- append(sequence_b, rep('_', 
+                (sum(!is.na(traceback_matrix[backtracking_score[1], ]))) - 1))
+
+            sequence_b <- append(sequence_b, rownames(
+                traceback_matrix)[backtracking_score[1]])
+        }
+    }
+    if (backtracking_score[2] != 0)
+        backtracking_score[2] <- backtracking_score[2] - 1
+    if (backtracking_score[1] != 0)
+        backtracking_score[1] <- backtracking_score[1] - 1
+
+}
+
+
+sequence_a <- rev(sequence_a)
+if (sequence_a[1] == '')
+    sequence_a <- sequence_a[-1]
+
+
+sequence_b <- rev(sequence_b)
+if (sequence_b[1] == '')
+    sequence_b <- sequence_b[-1]
+
+
+results <- c()
+
+for (value in seq_along(sequence_a)) {
+    if (sequence_a[value] == sequence_b[value])
+        results <- append(results, '*')
+    else {
+            if (sequence_a[value] == '_' || sequence_b[value] == '_')
+                results <- append(results, ' ')
+            else
+                results <- append(results, '|')
+        }
+}
+result_return <- list("first sequence" = sequence_b,
+                      "second sequence" = sequence_a,
+                      "result" = results, "score" = scoring_matrix[max_score])
+return(result_return)
+}
+

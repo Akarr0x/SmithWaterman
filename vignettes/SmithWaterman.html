@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Smith Waterman</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Smith Waterman</h1>
+<h4 class="author">Alessandro Diamanti</h4>
+<address class="author_afil">
+Politecnico di Milano<br><a class="author_email" href="mailto:#"><a href="mailto:alessandrodiamanti1@gmail.com" class="email">alessandrodiamanti1@gmail.com</a></a>
+</address>
+
+
+
+<div id="introduction" class="section level2">
+<h2>1. Introduction</h2>
+</div>
+<div id="aim-of-the-package" class="section level2">
+<h2>1.1 Aim of the package</h2>
+<p>This package has been developed to obtain an R package with a
+function that performs a local sequence alignment between two nucleotide
+sequences using the Smith-Waterman algorithm.</p>
+</div>
+<div id="smith-waterman-algorithm." class="section level2">
+<h2>1.2 Smith-Waterman algorithm.</h2>
+<p>The Smith-Waterman algorithm is an algorithm used to align nucleotide
+sequences, considering a local alignment over a global one. The
+algorithm is based on a score, given by how two sequences are equal one
+to the other.It returns one(in the case of this package) or more optimal
+sequence alignments, considered the fact that multiple alignments can
+have the same score.</p>
+<p>Different score can be adopted. The default scoring system chosen by
+this package is the following: +3 for each match, -3 for each
+miss-match, -1 for each gap in the sequence. This kind of scoring system
+is by no means the most optimal and different scores must be taken into
+consideration, depending on our wanted results.</p>
+</div>
+<div id="package-installation" class="section level2">
+<h2>2 Package installation</h2>
+</div>
+<div id="installation-and-dependencies" class="section level2">
+<h2>2.1 Installation and dependencies</h2>
+<p>The only dependency is Biostrings. Biostrings allows for better input
+handling, since it considers the possible nucleotide present in a DNA
+sequence thanks to DNAstring. It is also used to be sure that there are
+no differences between upper and lower cases letters.</p>
+<ul>
+<li>It is then needed to run the command
+<code>BiocManager::intall(&quot;Biostrings&quot;)</code> to install the
+dependencies. It is then possible to run
+<code>R CMD INSTALL SmithWaterman_0.99.tar.gz</code> from the directory
+containing the package.</li>
+</ul>
+</div>
+<div id="functions" class="section level2">
+<h2>2.2 Functions</h2>
+<p>This package contain the main function, called smithwaterman.</p>
+<p>smithwaterman() must contain:</p>
+<ul>
+<li><p>First sequence: A DNAString() object containing a correct
+sequence of nucleotides</p></li>
+<li><p>Second sequence: A DNAString() object containing a correct
+sequence of nucleotides</p></li>
+<li><p>Match: Score given in the presence of a match</p></li>
+<li><p>Miss-match: Score given in the presence of a miss-match</p></li>
+<li><p>Gap: Score given in the presence of a gap</p></li>
+</ul>
+</div>
+<div id="data" class="section level2">
+<h2>2.3 Data</h2>
+<p>In the package two sequences as DNAString objects are present. Those
+can be called with the following code</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>exSeq1 <span class="ot">&lt;-</span> eln1 <span class="co">#load the sequence of elastin transcript variant 1</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>exSeq2 <span class="ot">&lt;-</span> eln3 <span class="co">#load the sequence of elastin transcript variant 3</span></span></code></pre></div>
+</div>
+<div id="workflow" class="section level2">
+<h2>2.4 Workflow</h2>
+<p>Example of the usage of the package:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(SmithWaterman)</span></code></pre></div>
+<p>Then the creation of two DNAString objects is needed.</p>
+<ul>
+<li><p>Using a normal character variable</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>charVar <span class="ot">&lt;-</span> <span class="st">&quot;ATCG&quot;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>seq1 <span class="ot">&lt;-</span> <span class="fu">DNAString</span>(charVar)</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>seq2 <span class="ot">&lt;-</span> eln1</span></code></pre></div></li>
+</ul>
+<p>Once the two sequences are saved it’s possible to use the
+smithwaterman function</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>example <span class="ot">&lt;-</span> <span class="fu">smithwaterman</span>(seq1, seq2)</span></code></pre></div>
+<p>In the case that match, missmatch and gap are not defined, the
+standard values described before will be used.</p>
+<p>Example with other values:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>example <span class="ot">&lt;-</span> <span class="fu">smithwaterman</span>(seq1, seq2,<span class="dv">3</span>,<span class="sc">-</span><span class="dv">3</span>,<span class="sc">-</span><span class="dv">1</span>)</span></code></pre></div>
+<p>It is important to know that to correctly run this program the match
+score must be &gt; 0, the missmatch score must be &lt;0 and the gap
+score also must be &lt;0</p>
+<p>The result obtained by this function will be the best local alignment
+between the two function, a visualization strings that allows for a
+better understanding of the differences between the two sequences and
+the maximum score</p>
+</div>
+<div id="source-code" class="section level2">
+<h2>3 Source code</h2>
+<code>
+  
+smithwaterman <- function(first, second,
+                          match = 3, missmatch = -3,
+                          gap = -1) {
+first_sequence <- first
+second_sequence <- second
+sub_matrix <- matrix(c(match, missmatch, gap), 1, 3)
+
+if (length(first) == 0 || length(second) == 0)
+    stop("Sequences length is not correct")
+if (class(first_sequence) != "DNAString" ||
+    class(second_sequence) != "DNAString")
+    stop("Sequences must be DNAStrings")
+if (!is.numeric(sub_matrix))
+    stop("All the scores and penalities must be numeric")
+if (match <= 0)
+    stop("Match score must be higher than 0")
+if (missmatch > 0)
+    stop("Missmatch score must be lower than 0")
+if (gap > 0)
+    stop("Gap score must be lower than 0")
+
+first_sequence <- unlist(strsplit(toString(first_sequence), ""))
+second_sequence <- unlist(strsplit(toString(second_sequence), ""))
+len1 <- length(first_sequence)
+len2 <- length(second_sequence)
+scoring_matrix <- matrix(, ncol = len2 + 1, nrow = len1 + 1)
+rownames(scoring_matrix) <-  c("", unlist(strsplit(first_sequence, "")))
+colnames(scoring_matrix) <-  c("", unlist(strsplit(second_sequence, "")))
+traceback_matrix <- scoring_matrix
+scoring_matrix[, 1] <- 0
+scoring_matrix[1, ] <- 0
+
+for (i in 2:nrow(scoring_matrix)) {
+    for (j in 2:ncol(scoring_matrix)){
+
+        scores <-   c(scoring_matrix[i, j - 1] + sub_matrix[3],
+                        scoring_matrix[i - 1, j] + sub_matrix[3])
+
+        if (colnames(scoring_matrix)[j] == rownames(scoring_matrix)[i])
+            scores <- append(scores,
+                        scoring_matrix[i - 1, j - 1] + sub_matrix[1])
+
+        else
+            scores <- append(scores,
+                        scoring_matrix[i - 1, j - 1] + sub_matrix[2])
+
+        scoring_matrix[i, j] <- max(scores)
+
+        if (scoring_matrix[i, j] <= 0)
+                scoring_matrix[i, j] <- 0
+    }
+}
+
+max_score <- which(scoring_matrix == max(scoring_matrix), arr.ind = TRUE)
+
+if (length(max_score) > 2)
+    max_score <- max_score[1, ]
+
+traceback_score <- max(scoring_matrix)
+traceback_position <- max_score
+traceback_matrix[traceback_position[1], traceback_position[2]] <- 1
+
+while (traceback_score != 0 ||
+        traceback_position[1] != 1 && traceback_position[2] != 1) {
+        largest <-
+            c(scoring_matrix[traceback_position[1] - 1, traceback_position[2] - 1],
+            scoring_matrix[traceback_position[1] - 1, traceback_position[2]],
+            scoring_matrix[traceback_position[1], traceback_position[2] - 1])
+        largest_ind <- which(largest == max(largest), arr.ind = TRUE)
+
+        if (length(largest_ind) >= 2)
+            largest_ind <- largest_ind[1]
+
+        traceback_matrix[traceback_position[1],
+                        traceback_position[2]] <- largest_ind
+
+        if (largest_ind == 1) {
+            traceback_score <- scoring_matrix[traceback_position[1] - 1,
+                                             traceback_position[2] - 1]
+            traceback_position[1] <- traceback_position[1] - 1
+            traceback_position[2] <- traceback_position[2] - 1
+
+        }
+        if (largest_ind == 2) {
+            traceback_score <- scoring_matrix[traceback_position[1] - 1,
+                                             traceback_position[2]]
+            traceback_position[1] <- traceback_position[1] - 1
+        }
+        if (largest_ind == 3) {
+            traceback_score <- scoring_matrix[traceback_position[1],
+                                             traceback_position[2] - 1]
+            traceback_position[2] <- traceback_position[2] - 1
+        }
+
+        if (max(largest) == 0) {
+            break
+        }
+}
+
+backtracking_score <- max_score
+
+sequence_a <- c()
+sequence_b <- c()
+
+while (sum(!is.na(traceback_matrix[backtracking_score[1], ])) > 0 ||
+        sum(!is.na(traceback_matrix[, backtracking_score[2]])) > 0) {
+
+    if (sum(!is.na(traceback_matrix[, backtracking_score[2]])) == 1) {
+        sequence_a <- append(sequence_a, colnames(
+                traceback_matrix)[backtracking_score[2]])
+    }else {
+        if (sum(!is.na(traceback_matrix[, backtracking_score[2]])) != 0) {
+            sequence_a <- append(sequence_a, rep('_',
+                (sum(!is.na(traceback_matrix[, backtracking_score[2]]))) - 1))
+
+            sequence_a <- append(sequence_a, colnames(
+                traceback_matrix)[backtracking_score[2]])
+        }
+    }
+    if (sum(!is.na(traceback_matrix[backtracking_score[1], ])) == 1) {
+        sequence_b <- append(sequence_b, rownames(
+                traceback_matrix)[backtracking_score[1]])
+    }else {
+        if (sum(!is.na(traceback_matrix[backtracking_score[1], ])) != 0) {
+            sequence_b <- append(sequence_b, rep('_', 
+                (sum(!is.na(traceback_matrix[backtracking_score[1], ]))) - 1))
+
+            sequence_b <- append(sequence_b, rownames(
+                traceback_matrix)[backtracking_score[1]])
+        }
+    }
+    if (backtracking_score[2] != 0)
+        backtracking_score[2] <- backtracking_score[2] - 1
+    if (backtracking_score[1] != 0)
+        backtracking_score[1] <- backtracking_score[1] - 1
+
+}
+
+sequence_a <- rev(sequence_a)
+if (sequence_a[1] == '')
+    sequence_a <- sequence_a[-1]
+
+
+sequence_b <- rev(sequence_b)
+if (sequence_b[1] == '')
+    sequence_b <- sequence_b[-1]
+
+results <- c()
+
+for (value in seq_along(sequence_a)) {
+    if (sequence_a[value] == sequence_b[value])
+        results <- append(results, '*')
+    else {
+            if (sequence_a[value] == '_' || sequence_b[value] == '_')
+                results <- append(results, ' ')
+            else
+                results <- append(results, '|')
+        }
+}
+result_return <- list("first sequence" = sequence_b,
+                      "second sequence" = sequence_a,
+                      "result" = results, "score" = scoring_matrix[max_score])
+return(result_return)
+}
+
+</code>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
