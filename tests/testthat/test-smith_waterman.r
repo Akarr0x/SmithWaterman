@@ -1,27 +1,27 @@
 test_that("error DNAString seq1", {
   seq1 <- 'GAATC'
   seq2 <- DNAString("CATACG")
-  expect_error(globalSequenceAlignment(seq1, seq2))
+  expect_error(smithwaterman(seq1, seq2))
 })
 
 test_that("error DNAString seq2", {
   seq1 <- DNAString('GAATC')
   seq2 <- 'CATACG'
-  expect_error(globalSequenceAlignment(seq1, seq2))
+  expect_error(smithwaterman(seq1, seq2))
 })
 
 
 test_that("error DNAString length 1", {
   seq1 <- DNAString('')
   seq2 <- DNAString('AACTTG')
-  expect_error(globalSequenceAlignment(seq1, seq2))
+  expect_error(smithwaterman(seq1, seq2))
 })
 
 
 test_that("error DNAString length 1", {
   seq1 <- DNAString('ATCCG')
   seq2 <- DNAString('')
-  expect_error(globalSequenceAlignment(seq1, seq2))
+  expect_error(smithwaterman(seq1, seq2))
 })
 
 test_that("exact result", {
